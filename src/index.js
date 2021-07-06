@@ -37,35 +37,41 @@ app.get("/", async (req, res) => {
     .map((id) => parseInt(id));
 
   // массив id уроков с перечисоенными учителями
-  const lesson_ids_with_teachers = (
-    await LessonTeacher.findAll({
-      where: {
-        teacher_id: {
-          [Op.in]: teacher_ids ?? [],
+  let lesson_ids_with_teachers = [];
+  if (teacher_ids !== undefined) {
+    lesson_ids_with_teachers = (
+      await LessonTeacher.findAll({
+        where: {
+          teacher_id: {
+            [Op.in]: teacher_ids ?? [],
+          },
         },
-      },
-    })
-  ).map((lesson) => lesson.lesson_id);
+      })
+    ).map((lesson) => lesson.lesson_id);
+  }
 
   const students_count = req.query.students_count
     ?.split(",")
     .map((num) => parseInt(num));
 
   // массив id уроков с определённым количеством учеников
-  const lesson_ids_with_student_count = (
-    await LessonStudent.findAll({
-      attributes: ["lesson_id"],
-      group: ["lesson_id"],
-      having:
-        students_count == undefined
-          ? seq.literal("COUNT(student_id) = 999")
-          : students_count?.length == 2
-          ? seq.literal(
-              `COUNT(student_id) between ${students_count[0]} and ${students_count[1]}`
-            )
-          : seq.literal(`COUNT(student_id) = ${students_count[0]}`),
-    })
-  ).map((group) => group.lesson_id);
+  let lesson_ids_with_student_count = [];
+  if (students_count !== undefined) {
+    lesson_ids_with_student_count = (
+      await LessonStudent.findAll({
+        attributes: ["lesson_id"],
+        group: ["lesson_id"],
+        having:
+          students_count == undefined
+            ? seq.literal("COUNT(student_id) = 999")
+            : students_count?.length == 2
+            ? seq.literal(
+                `COUNT(student_id) between ${students_count[0]} and ${students_count[1]}`
+              )
+            : seq.literal(`COUNT(student_id) = ${students_count[0]}`),
+      })
+    ).map((group) => group.lesson_id);
+  }
 
   // массив допустимых id
   const united_ids_arr = lesson_ids_with_student_count.filter((value) =>
@@ -139,6 +145,8 @@ app.get("/", async (req, res) => {
 
   res.send(lessons);
 });
+
+app.get("/lessons");
 
 app.listen(port, async () => {
   // await db.sync();
