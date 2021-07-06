@@ -14,8 +14,6 @@ const app = express();
 const port = 3000;
 
 app.get("/", async (req, res) => {
-  const { date, status, teacher_ids, students_count } = req.query;
-
   const lessons_per_page = parseInt(req.query.lessons_per_page ?? 5);
   const page = parseInt(req.query.page ?? 0) * lessons_per_page;
 
@@ -26,29 +24,33 @@ app.get("/", async (req, res) => {
     return;
   }
 
-  const dates = date
+  const status = req.query.status;
+
+  const dates = req.query.date
     ?.split(",")
     .map((d) => new Date(d))
     .filter((d) => d instanceof Date && !isNaN(d));
 
-  const teacher_ids_arr = teacher_ids?.split(",").map((id) => parseInt(id));
+  const teacher_ids = req.query.teacher_ids
+    ?.split(",")
+    .map((id) => parseInt(id));
 
-  const lesson_teachers = await LessonTeacher.findAll({
-    where: {
-      teacher_id: {
-        [Op.in]: teacher_ids_arr ?? [],
+  // массив id уроков с перечисоенными учителями
+  const lesson_ids_with_teachers = (
+    await LessonTeacher.findAll({
+      where: {
+        teacher_id: {
+          [Op.in]: teacher_ids ?? [],
+        },
       },
-    },
-  });
+    })
+  ).map((lesson) => lesson.lesson_id);
 
-  const lesson_ids_with_teachers = lesson_teachers.map(
-    (lesson) => lesson.lesson_id
-  );
-
-  const students_count_arr = students_count
+  const students_count = req.query.students_count
     ?.split(",")
     .map((num) => parseInt(num));
 
+  // массив id уроков с определённым количеством учеников
   const lesson_ids_with_student_count = (
     await LessonStudent.findAll({
       attributes: ["lesson_id"],
@@ -56,21 +58,23 @@ app.get("/", async (req, res) => {
       having:
         students_count == undefined
           ? seq.literal("COUNT(student_id) = 999")
-          : students_count_arr?.length == 2
+          : students_count?.length == 2
           ? seq.literal(
-              `COUNT(student_id) between ${students_count_arr[0]} and ${students_count_arr[1]}`
+              `COUNT(student_id) between ${students_count[0]} and ${students_count[1]}`
             )
-          : seq.literal(`COUNT(student_id) = ${students_count_arr[0]}`),
+          : seq.literal(`COUNT(student_id) = ${students_count[0]}`),
     })
   ).map((group) => group.lesson_id);
 
+  // массив допустимых id
   const united_ids_arr = lesson_ids_with_student_count.filter((value) =>
     lesson_ids_with_teachers.includes(value)
   );
 
+  // запрос к бд
   const where = {
-    ...(status === undefined ? {} : { status }),
-    ...(date === undefined
+    ...(status == undefined ? {} : { status }),
+    ...(dates == undefined
       ? {}
       : {
           date: {
@@ -80,7 +84,7 @@ app.get("/", async (req, res) => {
             },
           },
         }),
-    ...(teacher_ids === undefined
+    ...(teacher_ids == undefined
       ? {}
       : {
           id: {
@@ -89,7 +93,7 @@ app.get("/", async (req, res) => {
               : lesson_ids_with_teachers,
           },
         }),
-    ...(students_count === undefined
+    ...(students_count == undefined
       ? {}
       : {
           id: {
@@ -100,34 +104,39 @@ app.get("/", async (req, res) => {
         }),
   };
 
-  const lessons = await Lesson.findAll({
-    where,
-    limit: lessons_per_page,
-    offset: page,
-    include: [
-      {
-        model: Teacher,
-        through: {
-          attributes: [],
+  const lessons = (
+    await Lesson.findAll({
+      where,
+      limit: lessons_per_page,
+      offset: page,
+      include: [
+        {
+          model: Teacher,
+          through: {
+            attributes: [],
+          },
         },
-      },
-      {
-        model: Student,
-        through: {
-          as: "lesson",
-          attributes: ["visit"],
+        {
+          model: Student,
+          through: {
+            as: "lesson",
+            attributes: ["visit"],
+          },
         },
-      },
-    ],
-    order: [["date"]],
-  });
+      ],
+      order: [["date"]],
+    })
+  ).map((lesson) => {
+    const visit_count = lesson.students
+      .map((student) => student.lesson.visit)
+      .reduce((acc, value) => (acc += value), 0);
 
-  res.send(lessons.map(lesson => {
-    const visit_count = lesson.students.map(student => student.lesson.visit).reduce((acc, value) => acc += value, 0)
-    lesson.setDataValue("visitCount", visit_count)
+    lesson.setDataValue("visit_count", visit_count);
 
     return lesson;
-  }));
+  });
+
+  res.send(lessons);
 });
 
 app.listen(port, async () => {
