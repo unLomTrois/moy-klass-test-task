@@ -18,6 +18,7 @@ app.get("/", async (req, res) => {
   const page = parseInt(req.query.page ?? 0) * lessons_per_page;
 
   if (page < 0) {
+    res.status(400);
     res.send({
       error: "negative page",
     });
