@@ -1,5 +1,5 @@
 import express from "express";
-import { body, validationResult } from "express-validator";
+import { body, query, validationResult } from "express-validator";
 import moment from "moment";
 import seq from "sequelize";
 const { Op } = seq;
@@ -16,7 +16,12 @@ const app = express();
 
 app.use(express.json());
 
-app.get("/", async (req, res) => {
+app.get("/", query("page").isNumeric().optional(), async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
   const lessons_per_page = parseInt(req.query.lessons_per_page ?? 5);
   const page = parseInt(req.query.page ?? 0) * lessons_per_page;
 
@@ -250,7 +255,7 @@ app.post(
       for (const teacher_id of teacher_ids) {
         await LessonTeacher.create({
           lesson_id: new_lesson.id,
-          teacher_id
+          teacher_id,
         });
       }
 

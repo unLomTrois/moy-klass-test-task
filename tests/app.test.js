@@ -23,9 +23,12 @@ describe("Тестирование корневого метода", () => {
       await request(app).get("/?page=1")
     ).body;
 
+    const response_error = await request(app).get("/?page='--'");
+
     expect(
       isEqual(sortBy(response_first_page), sortBy(response_second_page))
     ).toBe(false);
+    expect(response_error.statusCode).toBe(400);
   });
   test("Тест на пагинацию: lessons_per_page", async () => {
     const response = await (
