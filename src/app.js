@@ -1,6 +1,6 @@
 import express from "express";
 import { body, query, validationResult } from "express-validator";
-import { every, isArray, isArrayLike, isNumber } from "lodash-es";
+import { every, isArray, isArrayLike, isDate, isNumber } from "lodash-es";
 import moment from "moment";
 import seq from "sequelize";
 const { Op } = seq;
@@ -24,6 +24,15 @@ const isNumberOrArrayOfNumbers = (value) => {
   );
 };
 
+const isDateOrArrayOfDates = (value) => {
+  return (
+    isDate(value) ||
+    (value.includes(",") &&
+      isArray(value?.split(",")) &&
+      every(value?.split(","), Date))
+  );
+};
+
 app.get(
   "/",
   query("page").isNumeric().optional(),
@@ -31,6 +40,7 @@ app.get(
   query("status").isBoolean().optional(),
   query("teacher_ids").custom(isNumberOrArrayOfNumbers).optional(),
   query("students_count").custom(isNumberOrArrayOfNumbers).optional(),
+  query("date").custom(isDateOrArrayOfDates).optional(),
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {

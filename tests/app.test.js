@@ -65,15 +65,16 @@ describe("Тестирование корневого метода", () => {
   });
 
   test("Тест на фильтрацию: dates", async () => {
-    const response = await (
+    const response_dates_01_05 = await (
       await request(app).get("/?date=2019-01-01,2019-05-01")
     ).body;
-
-    const response_dates = await (
+    const response_dates_06_09 = await (
       await request(app).get("/?date=2019-06-01,2019-09-01")
     ).body;
+    expect(isEqual(sortBy(response_dates_01_05), sortBy(response_dates_06_09))).toBe(false);
 
-    expect(isEqual(sortBy(response), sortBy(response_dates))).toBe(false);
+    const response_error = await request(app).get("?date='2019-09-assaf'");
+    expect(response_error.statusCode).toBe(400);
   });
 
   test("Тест на фильтрацию: students_count", async () => {
