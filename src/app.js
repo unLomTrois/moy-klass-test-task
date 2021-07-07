@@ -1,5 +1,6 @@
 import express from "express";
 import { body, query, validationResult } from "express-validator";
+import { every, isArray, isArrayLike, isNumber } from "lodash-es";
 import moment from "moment";
 import seq from "sequelize";
 const { Op } = seq;
@@ -21,6 +22,15 @@ app.get(
   query("page").isNumeric().optional(),
   query("lessons_per_page").isNumeric().optional(),
   query("status").isBoolean().optional(),
+  query("teacher_ids")
+    .custom((value) => {
+      if (
+        isNumber(value) ||
+        (isArray(value?.split(",")) && every(value?.split(","), Number))
+      )
+        return true;
+    })
+    .optional(),
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {

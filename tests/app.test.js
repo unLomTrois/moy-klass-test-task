@@ -13,7 +13,7 @@ describe("Тестирование корневого метода", () => {
     const response = await request(app).get("/");
     expect(response.statusCode).toBe(200);
   });
-  
+
   test("Ответ должен быть массивом", async () => {
     const response = await request(app).get("/");
     expect(isArray(response.body)).toBe(true);
@@ -91,13 +91,24 @@ describe("Тестирование корневого метода", () => {
   });
 
   test("Тест на фильтрацию: teacher_ids", async () => {
-    const response = await (await request(app).get("/?teacher_ids=1, 2")).body;
+    const response = await request(app).get("/?teacher_ids=1");
+    expect(response.statusCode).toBe(200);
 
-    const response_teacher_ids = await (
-      await request(app).get("/?teacher_ids=3,4")
-    ).body;
+    const response_teacher_ids_1_2 = await request(app).get(
+      "/?teacher_ids=1,2"
+    );
+    const response_teacher_ids_3_4 = await request(app).get(
+      "/?teacher_ids=3,4"
+    );
+    expect(
+      isEqual(
+        sortBy(response_teacher_ids_1_2.body),
+        sortBy(response_teacher_ids_3_4.body)
+      )
+    ).toBe(false);
 
-    expect(isEqual(sortBy(response), sortBy(response_teacher_ids))).toBe(false);
+    const response_error = await request(app).get("/?teacher_ids='123'");
+    expect(response_error.statusCode).toBe(400);
   });
 });
 
