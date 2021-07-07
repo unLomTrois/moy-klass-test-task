@@ -5,7 +5,6 @@ import seq from "sequelize";
 const { Op } = seq;
 
 import {
-  db,
   Lesson,
   LessonStudent,
   LessonTeacher,
@@ -180,10 +179,19 @@ app.post(
     const dates = [];
     const first_date_weekday = first_date.day();
     if (lessons_count !== undefined) {
-      let created_lessons = 0;
       let i = days.indexOf(first_date_weekday); // week day index
       let j = 0; // week index
-      while (created_lessons != lessons_count) {
+
+      // ключевая дата, если меньше первой, к расчёту дальнейших дат добавляется неделя
+      const key_date = first_date
+        .clone()
+        .day(days[i] === undefined ? 0 : days[i] + j)
+        .utc(true);
+
+      if (key_date.isBefore(first_date)) {
+        j = 7;
+      }
+      while (dates.length != lessons_count) {
         if (days[i] === undefined) {
           i = 0;
         }
@@ -200,7 +208,6 @@ app.post(
         }
         dates.push(date);
 
-        created_lessons++;
         if (week_day == days[days.length - 1]) {
           j += 7;
         }
@@ -254,4 +261,4 @@ app.post(
   }
 );
 
-export { app }
+export { app };

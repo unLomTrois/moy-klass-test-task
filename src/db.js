@@ -3,6 +3,8 @@ const { Sequelize, Model, DataTypes } = seq;
 
 const db = new Sequelize(process.env.DATABASE_URL, {
   dialect: "postgres",
+  // не логать в тестах
+  logging: process.env.JEST_WORKER_ID !== undefined ? false : true,
   define: {
     //prevent sequelize from pluralizing table names
     freezeTableName: true,
