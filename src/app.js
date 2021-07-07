@@ -17,20 +17,20 @@ const app = express();
 
 app.use(express.json());
 
+const isNumberOrArrayOfNumbers = (value) => {
+  return (
+    isNumber(value) ||
+    (isArray(value?.split(",")) && every(value?.split(","), Number))
+  );
+};
+
 app.get(
   "/",
   query("page").isNumeric().optional(),
   query("lessons_per_page").isNumeric().optional(),
   query("status").isBoolean().optional(),
-  query("teacher_ids")
-    .custom((value) => {
-      if (
-        isNumber(value) ||
-        (isArray(value?.split(",")) && every(value?.split(","), Number))
-      )
-        return true;
-    })
-    .optional(),
+  query("teacher_ids").custom(isNumberOrArrayOfNumbers).optional(),
+  query("students_count").custom(isNumberOrArrayOfNumbers).optional(),
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {

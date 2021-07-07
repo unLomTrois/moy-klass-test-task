@@ -77,17 +77,21 @@ describe("Тестирование корневого метода", () => {
   });
 
   test("Тест на фильтрацию: students_count", async () => {
-    const response = await (
-      await request(app).get("/?students_count=1,2")
-    ).body;
-
-    const response_students_count = await (
-      await request(app).get("/?students_count=3,4")
-    ).body;
-
-    expect(isEqual(sortBy(response), sortBy(response_students_count))).toBe(
-      false
+    const response_students_count_1_2 = await request(app).get(
+      "/?students_count=1,2"
     );
+    const response_students_count_3_4 = await request(app).get(
+      "/?students_count=3,4"
+    );
+    expect(
+      isEqual(
+        sortBy(response_students_count_1_2.body),
+        sortBy(response_students_count_3_4.body)
+      )
+    ).toBe(false);
+
+    const response_error = await request(app).get("/?students_count='123'");
+    expect(response_error.statusCode).toBe(400);
   });
 
   test("Тест на фильтрацию: teacher_ids", async () => {
