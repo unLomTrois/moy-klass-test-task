@@ -13,10 +13,12 @@ describe("Тестирование корневого метода", () => {
     const response = await request(app).get("/");
     expect(response.statusCode).toBe(200);
   });
+  
   test("Ответ должен быть массивом", async () => {
     const response = await request(app).get("/");
     expect(isArray(response.body)).toBe(true);
   });
+
   test("Тест на пагинацию: page", async () => {
     const response_first_page = await (await request(app).get("/?page=0")).body;
     const response_second_page = await (
@@ -24,12 +26,13 @@ describe("Тестирование корневого метода", () => {
     ).body;
 
     const response_error = await request(app).get("/?page='--'");
+    expect(response_error.statusCode).toBe(400);
 
     expect(
       isEqual(sortBy(response_first_page), sortBy(response_second_page))
     ).toBe(false);
-    expect(response_error.statusCode).toBe(400);
   });
+
   test("Тест на пагинацию: lessons_per_page", async () => {
     const response = await (
       await request(app).get("/?lessons_per_page=5")
@@ -38,17 +41,29 @@ describe("Тестирование корневого метода", () => {
       await request(app).get("/?lessons_per_page=10")
     ).body;
 
+    const response_error = await request(app).get("/?lessons_per_page='--'");
+    expect(response_error.statusCode).toBe(400);
+
     expect(isEqual(sortBy(response), sortBy(response_lesson_per_page))).toBe(
       false
     );
   });
+
   test("Тест на фильтрацию: status", async () => {
-    const response = await (await request(app).get("/?status=0")).body;
+    const response_status_0 = await request(app).get("/?status=0");
+    expect(response_status_0.statusCode).toBe(200);
 
-    const response_status = await (await request(app).get("/?status=1")).body;
+    const response_status_1 = await request(app).get("/?status=1");
+    expect(response_status_1.statusCode).toBe(200);
 
-    expect(isEqual(sortBy(response), sortBy(response_status))).toBe(false);
+    const response_error = await request(app).get("/?status=afasfasf");
+    expect(response_error.statusCode).toBe(400);
+
+    expect(
+      isEqual(sortBy(response_status_0.body), sortBy(response_status_1.body))
+    ).toBe(false);
   });
+
   test("Тест на фильтрацию: dates", async () => {
     const response = await (
       await request(app).get("/?date=2019-01-01,2019-05-01")
@@ -60,6 +75,7 @@ describe("Тестирование корневого метода", () => {
 
     expect(isEqual(sortBy(response), sortBy(response_dates))).toBe(false);
   });
+
   test("Тест на фильтрацию: students_count", async () => {
     const response = await (
       await request(app).get("/?students_count=1,2")
@@ -73,6 +89,7 @@ describe("Тестирование корневого метода", () => {
       false
     );
   });
+
   test("Тест на фильтрацию: teacher_ids", async () => {
     const response = await (await request(app).get("/?teacher_ids=1, 2")).body;
 
